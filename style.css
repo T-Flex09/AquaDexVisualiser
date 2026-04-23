@@ -318,7 +318,7 @@ div {
 }
 
 a,
-a:visited {
+a:visited, a:active {
     color: var(--text-color);
 }
 
