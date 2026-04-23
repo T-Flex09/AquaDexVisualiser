@@ -117,7 +117,8 @@ div {
     animation: border-anim 5s linear infinite;
 }
 
-#theme_toggle, #view_toggle {
+#theme_toggle,
+#view_toggle {
     background-color: var(--background-color);
     color: var(--text-color);
     background-image: linear-gradient(var(--angle), #59f, #24c);
@@ -132,7 +133,8 @@ div {
     animation: border-anim 5s linear infinite;
 }
 
-#theme_toggle:hover, #view_toggle:hover {
+#theme_toggle:hover,
+#view_toggle:hover {
     background-color: var(--hover-background-color);
 }
 
@@ -313,4 +315,13 @@ div {
 .legend_item ul ul {
     margin-top: 0.5em;
     list-style-type: circle;
+}
+
+a,
+a:visited {
+    color: var(--text-color);
+}
+
+a:hover {
+    color: var(--accent-color);
 }

@@ -1,57 +1,13 @@
 // ==========================================
-// ====== CLASA FILTRULUI KALMAN ============
-// ==========================================
-
-class KalmanFilter {
-    constructor() {
-        this.Q_angle = 0.001; 
-        this.Q_bias = 0.003;  
-        this.R_measure = 0.03; 
-
-        this.angle = 0; 
-        this.bias = 0;  
-
-        this.P = [[0, 0], [0, 0]]; 
-    }
-
-    getAngle(newAngle, newRate, dt) {
-        let rate = newRate - this.bias;
-        this.angle += dt * rate;
-
-        this.P[0][0] += dt * (dt * this.P[1][1] - this.P[0][1] - this.P[1][0] + this.Q_angle);
-        this.P[0][1] -= dt * this.P[1][1];
-        this.P[1][0] -= dt * this.P[1][1];
-        this.P[1][1] += this.Q_bias * dt;
-
-        let S = this.P[0][0] + this.R_measure;
-        let K = [this.P[0][0] / S, this.P[1][0] / S]; 
-        let y = newAngle - this.angle; 
-
-        this.angle += K[0] * y;
-        this.bias += K[1] * y;
-
-        let P00_temp = this.P[0][0];
-        let P01_temp = this.P[0][1];
-
-        this.P[0][0] -= K[0] * P00_temp;
-        this.P[0][1] -= K[0] * P01_temp;
-        this.P[1][0] -= K[1] * P00_temp;
-        this.P[1][1] -= K[1] * P01_temp;
-
-        return this.angle;
-    }
-}
-
-// ==========================================
 // ====== VARIABILE GLOBALE & UI ============
 // ==========================================
 
-let chartInstance = null; 
-let fullTimeData = []; 
-let fullDatasetsData = {}; 
+let chartInstance = null;
+let fullTimeData = [];
+let fullDatasetsData = {};
 
-let currentIndex = 0; 
-const WINDOW_SIZE = 30; 
+let currentIndex = 0;
+const WINDOW_SIZE = 50;
 let isPlaying = false;
 let playInterval = null;
 
@@ -62,24 +18,32 @@ const colors = [
     '#008080','#000075','#a9a9a9','#bf4f51',
     '#9a6324','#e6beff','#469990','#f032e6',
     '#bfef45','#fabed4','#3cb44b','#e6194b'
-]; 
+];
 
 // ==========================================
 // ====== VARIABILE THREE.JS ================
 // ==========================================
 
 let scene, camera, renderer, submarine, submarinePitchRoll, controls;
-let oceanFloor; // NOU: Variabilă pentru modelul podelei
-let submarineLabel; 
+let oceanFloor;
+let submarineLabel;
 let is3DMode = false;
-let submarinePathCurve; 
-let visualProgress = 0; 
+let submarinePathCurve;
+let visualProgress = 0;
 
 let pathBounds = { minX: 0, maxX: 0, minZ: 0, maxZ: 0, minY: 0, maxY: 0 };
 let pathCenter = new THREE.Vector3(0, 0, 0);
 
-let kalmanPitchData = [];
-let kalmanRollData = [];
+// Date din CSV pentru vizualizare
+let csvPitchData = [];
+let csvRollData = [];
+let csvYawData = [];
+let csvXData = [];
+let csvYData = [];
+let csvZData = [];
+let csvMotorStgData = [];
+let csvMotorDrData = [];
+let csvMotorTopData = [];
 
 // ==========================================
 // ====== HELPERE & GRAFIC ==================
@@ -87,18 +51,19 @@ let kalmanRollData = [];
 
 function getLegendIdForColumn(colName) {
     let nume = colName.trim().toLowerCase();
-    if (nume.includes('dist') || ['față', 'spate', 'stânga', 'dreapta', 'jos'].includes(nume)) return 'legend_distante';
+    if (nume.includes('dist') || ['față', 'spate', 'stânga', 'dreapta', 'jos'].some(d => nume.includes(d))) return 'legend_distante';
     if (nume.includes('tds') || nume.includes('puritate')) return 'legend_puritate_tds';
     if (nume.includes('gyro')) return 'legend_gyro';
     if (nume.includes('acc')) return 'legend_acc';
-    return 'legend_' + nume;
+    if (nume.includes('pitch') || nume.includes('roll') || nume.includes('yaw')) return 'legend_gyro';
+    if (nume.includes('m_')) return 'legend_distante';
+    return 'legend_' + nume.replace(/[^a-z]/g, '');
 }
 
 function updateThemeSmoothly() {
     let style = getComputedStyle(document.documentElement);
     let textColor = style.getPropertyValue('--text-color').trim();
     let gridColorCss = style.getPropertyValue('--border-color').trim();
-    let bgColorCss = style.getPropertyValue('--background-color').trim();
 
     if (chartInstance) {
         chartInstance.options.color = textColor;
@@ -122,7 +87,7 @@ function updateThemeSmoothly() {
     }
 
     if (scene) {
-        scene.background.set(0x0067ff);
+        scene.background.set(document.documentElement.classList.contains('light-mode') ? 0x87CEEB : 0x0067ff);
     }
 }
 
@@ -135,23 +100,24 @@ function updateChart(recreate = false) {
 
     let startIdx = Math.max(0, currentIndex - WINDOW_SIZE + 1);
     let windowTimeData = fullTimeData.slice(startIdx, currentIndex + 1);
-    
+
     let activeDatasets = selectedColumns.map((colName, index) => {
         return {
             label: colName,
             data: fullDatasetsData[colName] ? fullDatasetsData[colName].slice(startIdx, currentIndex + 1) : [],
-            borderColor: colors[index % colors.length], 
+            borderColor: colors[index % colors.length],
             backgroundColor: colors[index % colors.length],
             borderWidth: 2,
-            tension: 0.1, 
-            pointRadius: 2 
+            tension: 0.3,
+            pointRadius: 1,
+            fill: false
         };
     });
 
     if (chartInstance && !recreate) {
         chartInstance.data.labels = windowTimeData;
         chartInstance.data.datasets = activeDatasets;
-        chartInstance.update('none'); 
+        chartInstance.update('none');
         return;
     }
 
@@ -162,32 +128,46 @@ function updateChart(recreate = false) {
     let gridColorCss = style.getPropertyValue('--border-color').trim();
 
     chartInstance = new Chart(ctx, {
-        type: 'line', 
+        type: 'line',
         data: { labels: windowTimeData, datasets: activeDatasets },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            color: textColor, 
-            animation: false, 
+            color: textColor,
+            animation: false,
+            interaction: {
+                intersect: false,
+                mode: 'index',
+            },
             scales: {
                 x: {
                     title: { display: true, text: 'Time (s)', color: textColor },
-                    ticks: { color: textColor },
-                    grid: { color: gridColorCss, tickColor: gridColorCss, drawBorder: true }
+                    ticks: { color: textColor, maxTicksLimit: 10 },
+                    grid: { color: gridColorCss, tickColor: gridColorCss, drawBorder: false }
                 },
                 y: {
                     title: { display: true, text: 'Value', color: textColor },
                     ticks: { color: textColor },
-                    grid: { color: gridColorCss, tickColor: gridColorCss, drawBorder: true }
+                    grid: { color: gridColorCss, tickColor: gridColorCss, drawBorder: false }
                 }
             },
-            plugins: { legend: { labels: { color: textColor } } }
+            plugins: {
+                legend: {
+                    labels: { color: textColor, maxColumns: 3 },
+                    position: 'bottom'
+                },
+                tooltip: {
+                    enabled: true,
+                    mode: 'index',
+                    intersect: false
+                }
+            }
         }
     });
 }
 
 // ==========================================
-// ====== PROCESARE DATE & KALMAN ===========
+// ====== PROCESARE DATE DIN CSV ============
 // ==========================================
 
 function generateSubmarinePathAndFilterSensors() {
@@ -202,92 +182,56 @@ function generateSubmarinePathAndFilterSensors() {
         return null;
     };
 
-    let dataAX = findData(['acc_x', 'acceleratie_x', 'acc x']);
-    let dataAY = findData(['acc_y', 'acceleratie_y', 'acc y']);
-    let dataAZ = findData(['acc_z', 'acceleratie_z', 'acc z']);
-    let dataGX = findData(['gyro_x', 'giroscop_x', 'gyro x']);
-    let dataGY = findData(['gyro_y', 'giroscop_y', 'gyro y']);
+    // Extragem datele din CSV
+    csvXData = findData(['x', 'pos_x']) || [];
+    csvYData = findData(['y', 'pos_y']) || [];
+    csvZData = findData(['z', 'pos_z', 'adancime']) || [];
+    csvPitchData = findData(['pitch']) || [];
+    csvRollData = findData(['roll']) || [];
+    csvYawData = findData(['heading', 'yaw']) || [];
+    csvMotorStgData = findData(['m_stg']) || [];
+    csvMotorDrData = findData(['m_dr']) || [];
+    csvMotorTopData = findData(['m_top']) || [];
 
-    let rawPoints = [];
-    kalmanPitchData = [];
-    kalmanRollData = [];
+    // Calculăm limitele traseului pentru camera 3D
     pathBounds = { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity, minY: Infinity, maxY: -Infinity };
 
-    let kfPitch = new KalmanFilter();
-    let kfRoll = new KalmanFilter();
+    for (let i = 0; i < csvXData.length; i++) {
+        let x = csvXData[i] || 0;
+        let y = csvYData[i] || 0;
+        let z = csvZData[i] || 0;
 
-    let gravityOffset = 0;
-    if (dataAZ) {
-        let sampleCount = Math.min(10, dataAZ.length);
-        for(let s=0; s<sampleCount; s++) gravityOffset += dataAZ[s];
-        gravityOffset /= sampleCount;
+        pathBounds.minX = Math.min(pathBounds.minX, x);
+        pathBounds.maxX = Math.max(pathBounds.maxX, x);
+        pathBounds.minY = Math.min(pathBounds.minY, y);
+        pathBounds.maxY = Math.max(pathBounds.maxY, y);
+        pathBounds.minZ = Math.min(pathBounds.minZ, z);
+        pathBounds.maxZ = Math.max(pathBounds.maxZ, z);
     }
 
-    let currentPos = new THREE.Vector3(0, 0, 0); 
-    let currentVel = new THREE.Vector3(0, 0, 0);
-
-    for (let i = 0; i < fullTimeData.length; i++) {
-        let aX = dataAX ? dataAX[i] : 0;
-        let aY = dataAY ? dataAY[i] : 0;
-        let aZ = dataAZ ? (dataAZ[i] - gravityOffset) : 0;
-        let aZ_raw = dataAZ ? dataAZ[i] : 1; 
-
-        let gX = dataGX ? dataGX[i] : 0;
-        let gY = dataGY ? dataGY[i] : 0;
-
-        let dt = 0.1; 
-        if (i > 0) {
-            let t1 = parseFloat(fullTimeData[i]);
-            let t0 = parseFloat(fullTimeData[i-1]);
-            if (!isNaN(t1) && !isNaN(t0)) dt = Math.min(t1 - t0, 0.5);
-        }
-
-        let accRoll = 0, accPitch = 0;
-        if (aX !== 0 || aY !== 0 || aZ_raw !== 0) {
-            accRoll  = Math.atan2(aY, aZ_raw) * (180 / Math.PI);
-            accPitch = Math.atan2(-aX, Math.sqrt(aY * aY + aZ_raw * aZ_raw)) * (180 / Math.PI);
-        }
-
-        let finalPitch = kfPitch.getAngle(accPitch, gX, dt);
-        let finalRoll = kfRoll.getAngle(accRoll, gY, dt);
-
-        kalmanPitchData.push(finalPitch * (Math.PI / 180));
-        kalmanRollData.push(finalRoll * (Math.PI / 180));
-
-        if (Math.abs(aX) < 0.05) aX = 0;
-        if (Math.abs(aY) < 0.05) aY = 0;
-        if (Math.abs(aZ) < 0.05) aZ = 0;
-
-        currentVel.x -= aX * dt * 25; 
-        currentVel.z += aY * dt * 25; 
-        currentVel.y += aZ * dt * 25;
-
-        currentVel.multiplyScalar(0.88); 
-
-        currentPos.x += currentVel.x * dt;
-        currentPos.z += currentVel.z * dt;
-        currentPos.y += currentVel.y * dt;
-
-        rawPoints.push(currentPos.clone().multiplyScalar(5));
-
-        pathBounds.minX = Math.min(pathBounds.minX, currentPos.x);
-        pathBounds.maxX = Math.max(pathBounds.maxX, currentPos.x);
-        pathBounds.minZ = Math.min(pathBounds.minZ, currentPos.z);
-        pathBounds.maxZ = Math.max(pathBounds.maxZ, currentPos.z);
-        pathBounds.minY = Math.min(pathBounds.minY, currentPos.y);
-        pathBounds.maxY = Math.max(pathBounds.maxY, currentPos.y);
+    // Dacă nu avem date valide, setăm limite default
+    if (pathBounds.maxX === -Infinity) {
+        pathBounds = { minX: -100, maxX: 100, minZ: -100, maxZ: 100, minY: -50, maxY: 50 };
     }
 
-    if (rawPoints.length === 1) rawPoints.push(rawPoints[0].clone().add(new THREE.Vector3(0,0,0.1)));
+    // Creăm punctele pentru curba 3D
+    let rawPoints = [];
+    for (let i = 0; i < csvXData.length; i++) {
+        let x = csvXData[i] || 0;
+        let y = csvZData[i] || 0; // Y în Three.js este vertical (adâncime)
+        let z = csvYData[i] || 0;
 
-    if (pathBounds.maxX === 0 && pathBounds.minX === 0) {
-        pathBounds = { minX: -25, maxX: 25, minZ: -25, maxZ: 25, minY: -5, maxY: 5 };
+        rawPoints.push(new THREE.Vector3(x * 15, -y * 15, z * 15)); // Scale 5x pentru vizibilitate
+    }
+
+    if (rawPoints.length === 1) {
+        rawPoints.push(rawPoints[0].clone().add(new THREE.Vector3(0, 0, 1)));
     }
 
     if (rawPoints.length > 1) {
         submarinePathCurve = new THREE.CatmullRomCurve3(rawPoints);
         submarinePathCurve.curveType = 'centripetal';
-        submarinePathCurve.tension = 0.1; 
+        submarinePathCurve.tension = 0.1;
     }
 
     pathCenter.set(
@@ -300,6 +244,8 @@ function generateSubmarinePathAndFilterSensors() {
         visualProgress = 0;
         adjustCameraAndFloor();
     }
+
+    console.log(`[3D] Traseu generat: ${rawPoints.length} puncte, Centru: (${pathCenter.x}, ${pathCenter.y}, ${pathCenter.z})`);
 }
 
 // ==========================================
@@ -311,75 +257,90 @@ function adjustCameraAndFloor() {
 
     let pathWidth = pathBounds.maxX - pathBounds.minX;
     let pathDepth = pathBounds.maxZ - pathBounds.minZ;
+    let pathHeight = pathBounds.maxY - pathBounds.minY;
 
-    let paddingFactor = 1.3; 
-    let finalSizeX = Math.max(100, pathWidth * paddingFactor); 
-    let finalSizeZ = Math.max(100, pathDepth * paddingFactor);
-    let gridSquareSize = Math.max(finalSizeX, finalSizeZ); 
-    
-    // Dacă am încărcat un model de podea, îl punem sub traseu
+    let paddingFactor = 1.5;
+    let finalSizeX = Math.max(200, pathWidth * paddingFactor);
+    let finalSizeZ = Math.max(200, pathDepth * paddingFactor);
+    let gridSquareSize = Math.max(finalSizeX, finalSizeZ);
+
+    // Poziționăm podeaua oceanului
     if (oceanFloor) {
-        let seabedY = pathBounds.minY - 5000; // 20 de unități sub cel mai jos punct al traseului
-        oceanFloor.position.set(pathCenter.x, seabedY, pathCenter.z);
-        
-        // Opțional: Scalează modelul podelei ca să acopere tot traseul.
-        // Ai putea avea nevoie să ajustezi valorile (ex. 10, 10, 10) în funcție de dimensiunea originală a modelului tău.
-        oceanFloor.scale.set(gridSquareSize, gridSquareSize, gridSquareSize); 
+        let seabedY = -pathBounds.maxY - 50;
+        oceanFloor.position.set(pathCenter.x * 3, seabedY * 3, pathCenter.z * 3);
+        oceanFloor.scale.set(gridSquareSize / 10, gridSquareSize / 10, gridSquareSize / 10);
     }
 
-    if(controls) {
-        controls.target.copy(pathCenter);
+    if (controls) {
+        controls.target.set(pathCenter.x * 3, pathCenter.y * 3, pathCenter.z * 3);
         controls.update();
     }
-    
-    camera.position.set(pathCenter.x, pathCenter.y + 150, pathCenter.z + gridSquareSize*2);
-    camera.lookAt(pathCenter);
+
+    // === ISOMETRIC CAMERA POSITION ===
+    // Isometric view: camera at 45° angle, looking at scene center
+    const ISO_ANGLE = 0.615; // ~35 degrees (true isometric)
+    const cameraDistance = gridSquareSize * 1.8; // Distance from center
+
+    camera.position.set(
+        pathCenter.x * 3 + cameraDistance * Math.cos(ISO_ANGLE),  // X offset
+        pathCenter.y * 3 + cameraDistance * Math.sin(ISO_ANGLE),  // Y offset (height)
+        pathCenter.z * 3 + cameraDistance * Math.cos(ISO_ANGLE)   // Z offset
+    );
+
+    camera.lookAt(
+        pathCenter.x * 3,
+        pathCenter.y * 3,
+        pathCenter.z * 3
+    );
+
+    // Optional: Constrain camera movement for better viewing
+    if (controls) {
+        controls.minPolarAngle = 0.3;  // Don't go too high
+        controls.maxPolarAngle = 1.2;  // Don't go below ground
+        controls.minDistance = 100;
+        controls.maxDistance = cameraDistance * 3;
+    }
 }
+
 
 // ==========================================
 // ====== HELPER: CREATOR NAME TAG ==========
 // ==========================================
 
-// ==========================================
-// ====== HELPER NOU: CREATOR NAME TAG ======
-// ==========================================
-
 function createTextLabel(text) {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
-    
+
     canvas.width = 512;
     canvas.height = 128;
-    
+
     context.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     context.font = 'bold 80px sans-serif';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    
-    // Umbră mai puternică pentru contrast bun al textului alb
+
     context.shadowColor = 'rgba(0,0,0,0.8)';
     context.shadowBlur = 15;
     context.shadowOffsetX = 5;
     context.shadowOffsetY = 5;
 
-    // --- MODIFICAREA AICI: Forțăm culoarea pe ALB ---
     context.fillStyle = '#ffffff';
-    
+
     context.fillText(text, canvas.width / 2, canvas.height / 2);
-    
+
     const texture = new THREE.Texture(canvas);
-    texture.needsUpdate = true; 
-    
-    const spriteMaterial = new THREE.SpriteMaterial({ 
-        map: texture, 
+    texture.needsUpdate = true;
+
+    const spriteMaterial = new THREE.SpriteMaterial({
+        map: texture,
         transparent: true,
-        depthTest: false 
+        depthTest: false
     });
-    
+
     const sprite = new THREE.Sprite(spriteMaterial);
-    sprite.scale.set(800, 240, 20); 
-    
+    sprite.scale.set(100, 30, 2.5);
+
     return sprite;
 }
 
@@ -400,18 +361,21 @@ document.getElementById("file_input").addEventListener("change", (event) => {
         let lines = csvText.trim().split(/\r?\n/);
         if (lines.length === 0) return;
 
-        let headers = lines[0].split(",");
-        
+        let headers = lines[0].split(",").map(h => h.trim());
+
         fullTimeData = [];
         fullDatasetsData = {};
-        for (let i = 1; i < headers.length; i++) fullDatasetsData[headers[i]] = [];
+        for (let i = 1; i < headers.length; i++) {
+            fullDatasetsData[headers[i]] = [];
+        }
 
         for (let i = 1; i < lines.length; i++) {
             let currentLine = lines[i].split(",");
-            if (currentLine.length === headers.length) {
-                fullTimeData.push(currentLine[0]); 
+            if (currentLine.length >= headers.length) {
+                fullTimeData.push(currentLine[0]);
                 for (let j = 1; j < headers.length; j++) {
-                    fullDatasetsData[headers[j]].push(parseFloat(currentLine[j]));
+                    let val = parseFloat(currentLine[j]);
+                    fullDatasetsData[headers[j]].push(isNaN(val) ? 0 : val);
                 }
             }
         }
@@ -423,11 +387,14 @@ document.getElementById("file_input").addEventListener("change", (event) => {
             let dataNode = document.createElement("div");
             dataNode.style.display = "flex";
             dataNode.style.alignItems = "center";
-            
+
             let checkbox = document.createElement("input");
             checkbox.type = "checkbox";
             checkbox.value = colName;
-            if (i === 1) checkbox.checked = true; 
+            // Selectăm automat coloanele importante
+            if (['pitch', 'z', 'd_fata', 'm_stg'].some(k => colName.toLowerCase().includes(k))) {
+                checkbox.checked = true;
+            }
             checkbox.addEventListener('change', () => updateChart(true));
 
             let textSpan = document.createElement("span");
@@ -435,45 +402,46 @@ document.getElementById("file_input").addEventListener("change", (event) => {
             textSpan.style.color = "var(--text-color)";
             textSpan.style.cursor = "pointer";
             textSpan.style.marginLeft = "8px";
-            
+
             textSpan.addEventListener('mouseenter', () => textSpan.style.color = "var(--accent-color)");
             textSpan.addEventListener('mouseleave', () => textSpan.style.color = "var(--text-color)");
 
             textSpan.addEventListener('click', () => {
                 let targetId = getLegendIdForColumn(colName);
                 let targetEl = document.getElementById(targetId);
-                
+
                 if (targetEl) {
                     targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     let originalBg = getComputedStyle(targetEl).backgroundColor;
                     targetEl.style.transition = "background-color 0.3s";
                     targetEl.style.backgroundColor = "var(--accent-color)";
-                    
+
                     setTimeout(() => {
                         targetEl.style.backgroundColor = originalBg;
                         setTimeout(() => targetEl.style.backgroundColor = "", 300);
                     }, 500);
                 }
             });
-            
+
             dataNode.appendChild(checkbox);
             dataNode.appendChild(textSpan);
             dataSelectorDiv.appendChild(dataNode);
         }
-        
+
         let timeline = document.getElementById('timeline');
         timeline.max = fullTimeData.length - 1;
         timeline.value = 0;
         currentIndex = 0;
         document.getElementById('playback_controls').style.display = 'flex';
-        
-        updateChart(true); 
+
+        updateChart(true);
     };
     reader.readAsText(file);
 });
 
 const playBtn = document.getElementById('play_btn');
 const timeline = document.getElementById('timeline');
+const timeDisplay = document.getElementById('time_display');
 
 playBtn.addEventListener('click', () => {
     if (isPlaying) pausePlayback();
@@ -481,25 +449,29 @@ playBtn.addEventListener('click', () => {
 });
 
 timeline.addEventListener('input', (e) => {
-    pausePlayback(); 
+    pausePlayback();
     currentIndex = parseInt(e.target.value);
     updateChart(false);
+    updateHUD();
 });
 
 function startPlayback() {
     if (fullTimeData.length === 0) return;
     if (currentIndex >= fullTimeData.length - 1) currentIndex = 0;
-    
+
     isPlaying = true;
     playBtn.innerText = '⏸ Pause';
-    
+
     playInterval = setInterval(() => {
         if (currentIndex < fullTimeData.length - 1) {
             currentIndex++;
             timeline.value = currentIndex;
-            updateChart(false); 
-        } else pausePlayback(); 
-    }, 200); 
+            updateChart(false);
+            updateHUD();
+        } else {
+            pausePlayback();
+        }
+    }, 100);
 }
 
 function pausePlayback() {
@@ -508,40 +480,55 @@ function pausePlayback() {
     clearInterval(playInterval);
 }
 
-const goToLegendBtn = document.getElementById('go_to_legend');
-if (goToLegendBtn) {
-    goToLegendBtn.addEventListener('click', () => {
-        const legend = document.getElementById('legend_container');
-        if (legend) legend.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-}
+function updateHUD() {
+    if (fullTimeData.length === 0) return;
 
-document.addEventListener("DOMContentLoaded", () => {
-    const themeToggleBtn = document.getElementById('theme_toggle');
-    const savedTheme = localStorage.getItem('theme');
-    
-    if (savedTheme === 'light') {
-        document.documentElement.classList.add('light-mode');
-        if (themeToggleBtn) themeToggleBtn.innerText = '🌙 Dark Mode';
-    } else {
-        if (themeToggleBtn) themeToggleBtn.innerText = '☀️ Light Mode';
-    }
-});
-
-const themeToggleBtn = document.getElementById('theme_toggle');
-if (themeToggleBtn) {
-    themeToggleBtn.addEventListener('click', () => {
-        document.documentElement.classList.toggle('light-mode');
-        
-        if (document.documentElement.classList.contains('light-mode')) {
-            themeToggleBtn.innerText = '🌙 Dark Mode';
-            localStorage.setItem('theme', 'light');
-        } else {
-            themeToggleBtn.innerText = '☀️ Light Mode';
-            localStorage.setItem('theme', 'dark');
+    const findData = (keywords) => {
+        const keys = Object.keys(fullDatasetsData);
+        for (let k of keys) {
+            if (keywords.some(word => k.toLowerCase().includes(word))) {
+                return fullDatasetsData[k][currentIndex] || 0;
+            }
         }
-        updateThemeSmoothly(); 
-    });
+        return 0;
+    };
+
+    const formatHUD = (val) => (val || 0).toFixed(2);
+
+    // Orientare
+    let el_pitch = document.getElementById('hud_pitch');
+    if (el_pitch) el_pitch.innerText = formatHUD(findData(['pitch']));
+
+    let el_roll = document.getElementById('hud_roll');
+    if (el_roll) el_roll.innerText = formatHUD(findData(['roll']));
+
+    let el_yaw = document.getElementById('hud_yaw');
+    if (el_yaw) el_yaw.innerText = formatHUD(findData(['heading', 'yaw']));
+
+    // Giroscop
+    let el_gx = document.getElementById('hud_gx');
+    if (el_gx) el_gx.innerText = formatHUD(findData(['gyro_x']));
+
+    let el_gy = document.getElementById('hud_gy');
+    if (el_gy) el_gy.innerText = formatHUD(findData(['gyro_y']));
+
+    let el_gz = document.getElementById('hud_gz');
+    if (el_gz) el_gz.innerText = formatHUD(findData(['gyro_z']));
+
+    // Motoare
+    let el_m_stg = document.getElementById('hud_m_stg');
+    if (el_m_stg) el_m_stg.innerText = Math.round(findData(['m_stg']));
+
+    let el_m_dr = document.getElementById('hud_m_dr');
+    if (el_m_dr) el_m_dr.innerText = Math.round(findData(['m_dr']));
+
+    let el_m_top = document.getElementById('hud_m_top');
+    if (el_m_top) el_m_top.innerText = Math.round(findData(['m_top']));
+
+    // Timp
+    if (timeDisplay) {
+        timeDisplay.innerText = fullTimeData[currentIndex] + 's';
+    }
 }
 
 // ==========================================
@@ -550,44 +537,52 @@ if (themeToggleBtn) {
 
 function initThreeJS() {
     const container = document.getElementById('three_container');
+    if (!container) return;
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0067ff);
+    scene.background = new THREE.Color(document.documentElement.classList.contains('light-mode') ? 0x87CEEB : 0x0067ff);
+    scene.fog = new THREE.Fog(scene.background, 500, 2000);
 
     camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100000);
-    camera.position.set(0, 40, 50);
+    camera.position.set(0, 200, 400);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(renderer.domElement);
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2;
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(10, 20, 10);
+    // Lumini
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(100, 200, 100);
     scene.add(dirLight);
 
     const loader = new THREE.GLTFLoader();
 
-    // --- NOU: ÎNCĂRCAREA PODELEI ---
+    // Încărcăm podeaua oceanului
     loader.load('fund_ocean.glb', function (gltf) {
         oceanFloor = gltf.scene;
-        // Asigură-te că materialele din model arată bine, poți adăuga lumini mai târziu dacă e prea întunecat
+        oceanFloor.traverse((child) => {
+            if (child.isMesh) {
+                child.material.transparent = true;
+                child.material.opacity = 0.9;
+            }
+        });
         scene.add(oceanFloor);
-        
-        // Dacă traseul e deja generat (din CSV), aliniază podeaua
+
         if (submarinePathCurve) {
             adjustCameraAndFloor();
-        } else {
-            // Altfel, o punem temporar undeva jos
-            oceanFloor.position.y = -20;
         }
+    }, undefined, function (error) {
+        console.warn('Nu s-a putut încărca fund_ocean.glb, se continuă fără podea');
     });
 
-    // --- ÎNCĂRCAREA SUBMARINULUI ---
+    // Încărcăm submarinul
     submarine = new THREE.Group();
     scene.add(submarine);
 
@@ -596,11 +591,19 @@ function initThreeJS() {
 
     loader.load('submarin.glb', function (gltf) {
         const model = gltf.scene;
+        model.scale.set(0.05, 0.05, 0.05);
         submarinePitchRoll.add(model);
-        
+
         submarineLabel = createTextLabel("Aquadex");
-        submarineLabel.position.set(0, 300, 0); 
+        submarineLabel.position.set(0, 50, 0);
         submarine.add(submarineLabel);
+    }, undefined, function (error) {
+        console.warn('Nu s-a putut încărca submarin.glb, se folosește cub default');
+        // Fallback: cub simplu dacă modelul nu se încarcă
+        const geometry = new THREE.BoxGeometry(20, 10, 40);
+        const material = new THREE.MeshPhongMaterial({ color: 0xffaa00 });
+        const cube = new THREE.Mesh(geometry, material);
+        submarinePitchRoll.add(cube);
     });
 
     if (submarinePathCurve) {
@@ -628,67 +631,45 @@ function initThreeJS() {
 function update3DSubmarinePosition() {
     if (!submarine || fullTimeData.length === 0 || !submarinePathCurve) return;
 
-    // --- 1. DEPLASARE PE TRASEUL INERȚIAL PRECALCULAT ---
+    // 1. Deplasare pe traseu
     const targetProgress = currentIndex / (fullTimeData.length - 1);
 
     if (Math.abs(targetProgress - visualProgress) > 0.5) {
-        visualProgress = targetProgress; 
+        visualProgress = targetProgress;
     } else {
-        visualProgress += (targetProgress - visualProgress) * 0.015; 
+        visualProgress += (targetProgress - visualProgress) * 0.1;
     }
 
     let safeProgress = Math.max(0.0001, Math.min(0.9999, visualProgress));
 
     const currentPos = submarinePathCurve.getPointAt(safeProgress);
-    submarine.position.copy(currentPos);
-    
-    const tangent = submarinePathCurve.getTangentAt(safeProgress);
-    if (tangent.length() > 0.001) {
-        const lookTarget = currentPos.clone().add(tangent);
-        
-        const dummyCompass = new THREE.Object3D();
-        dummyCompass.position.copy(submarine.position);
-        dummyCompass.lookAt(lookTarget);
-        
-        submarine.quaternion.slerp(dummyCompass.quaternion, 0.1); 
-    }
+    submarine.position.lerp(currentPos, 0.1);
 
-    // --- 2. TELEMETRIE ȘI ÎNCLINARE FIZICĂ (KALMAN) ---
-    let targetPitch = kalmanPitchData[currentIndex] || 0;
-    let targetRoll  = kalmanRollData[currentIndex]  || 0;
+    // 2. Orientare (Heading/Yaw)
+    let nextPos = submarinePathCurve.getPointAt(Math.min(safeProgress + 0.01, 0.9999));
+    let lookTarget = nextPos.clone();
 
-    if (is3DMode) {
-        const findData = (keywords) => {
-            const keys = Object.keys(fullDatasetsData);
-            for (let k of keys) {
-                if (keywords.some(word => k.toLowerCase().includes(word))) return fullDatasetsData[k];
-            }
-            return null;
-        };
+    const dummyCompass = new THREE.Object3D();
+    dummyCompass.position.copy(submarine.position);
+    dummyCompass.lookAt(lookTarget);
 
-        let gX = findData(['gyro_x', 'pitch']) ? findData(['gyro_x', 'pitch'])[currentIndex] : 0;
-        let gY = findData(['gyro_y', 'roll']) ? findData(['gyro_y', 'roll'])[currentIndex] : 0;
-        let gZ = findData(['gyro_z', 'yaw']) ? findData(['gyro_z', 'yaw'])[currentIndex] : 0;
-        let aX = findData(['acceleratie_x']) ? findData(['acceleratie_x'])[currentIndex] : 0;
-        let aY = findData(['acceleratie_y']) ? findData(['acceleratie_y'])[currentIndex] : 0;
-        let aZ = findData(['acceleratie_z']) ? findData(['acceleratie_z'])[currentIndex] : 0;
+    submarine.quaternion.slerp(dummyCompass.quaternion, 0.05);
 
-        const formatHUD = (val) => val === 0 ? "0.00" : (val || 0).toFixed(2);
-        let el_gx = document.getElementById('hud_gx'); if(el_gx) el_gx.innerText = formatHUD(gX);
-        let el_gy = document.getElementById('hud_gy'); if(el_gy) el_gy.innerText = formatHUD(gY);
-        let el_gz = document.getElementById('hud_gz'); if(el_gz) el_gz.innerText = formatHUD(gZ);
-        let el_ax = document.getElementById('hud_ax'); if(el_ax) el_ax.innerText = formatHUD(aX);
-        let el_ay = document.getElementById('hud_ay'); if(el_ay) el_ay.innerText = formatHUD(aY);
-        let el_az = document.getElementById('hud_az'); if(el_az) el_az.innerText = formatHUD(aZ);
-    }
+    // 3. Pitch și Roll din senzori (CSV)
+    let targetPitch = csvPitchData[currentIndex] || 0;
+    let targetRoll = csvRollData[currentIndex] || 0;
 
+    // Convertim grade în radiani și inversăm axele pentru Three.js
     if (submarinePitchRoll) {
-        submarinePitchRoll.rotation.x += (targetPitch - submarinePitchRoll.rotation.x) * 0.1;
-        submarinePitchRoll.rotation.z += (targetRoll - submarinePitchRoll.rotation.z) * 0.1;
+        submarinePitchRoll.rotation.x += (targetPitch * Math.PI / 180 - submarinePitchRoll.rotation.x) * 0.1;
+        submarinePitchRoll.rotation.z += (-targetRoll * Math.PI / 180 - submarinePitchRoll.rotation.z) * 0.1;
     }
 }
 
-// Butonul Toggle Grafic <-> 3D
+// ==========================================
+// ====== TOGGLE GRAFIC <-> 3D =============
+// ==========================================
+
 const viewToggleBtn = document.getElementById('view_toggle');
 const graphDiv = document.getElementById('graph');
 const threeDiv = document.getElementById('three_container');
@@ -698,18 +679,18 @@ const telemetryHud = document.getElementById('telemetry_hud');
 if (viewToggleBtn) {
     viewToggleBtn.addEventListener('click', () => {
         is3DMode = !is3DMode;
-        
+
         if (is3DMode) {
             viewToggleBtn.innerText = '📈 Vizualizare Grafic';
-            
-            if(graphDiv) graphDiv.style.display = 'none';
-            if(dataSelectionDiv) dataSelectionDiv.style.display = 'none';
-            
-            if(threeDiv) threeDiv.style.display = 'block';
-            if(telemetryHud) telemetryHud.style.display = 'flex';
-            
+
+            if (graphDiv) graphDiv.style.display = 'none';
+            if (dataSelectionDiv) dataSelectionDiv.style.display = 'none';
+
+            if (threeDiv) threeDiv.style.display = 'block';
+            if (telemetryHud) telemetryHud.style.display = 'flex';
+
             if (!scene) initThreeJS();
-            
+
             if (camera && renderer) {
                 camera.aspect = threeDiv.clientWidth / threeDiv.clientHeight;
                 camera.updateProjectionMatrix();
@@ -717,12 +698,44 @@ if (viewToggleBtn) {
             }
         } else {
             viewToggleBtn.innerText = '🌐 Vizualizare 3D';
-            
-            if(threeDiv) threeDiv.style.display = 'none';
-            if(telemetryHud) telemetryHud.style.display = 'none';
-            
-            if(graphDiv) graphDiv.style.display = 'block';
-            if(dataSelectionDiv) dataSelectionDiv.style.display = 'flex';
+
+            if (threeDiv) threeDiv.style.display = 'none';
+            if (telemetryHud) telemetryHud.style.display = 'none';
+
+            if (graphDiv) graphDiv.style.display = 'block';
+            if (dataSelectionDiv) dataSelectionDiv.style.display = 'flex';
         }
+    });
+}
+
+// ==========================================
+// ====== THEME TOGGLE =====================
+// ==========================================
+
+document.addEventListener("DOMContentLoaded", () => {
+    const themeToggleBtn = document.getElementById('theme_toggle');
+    const savedTheme = localStorage.getItem('theme');
+
+    if (savedTheme === 'light') {
+        document.documentElement.classList.add('light-mode');
+        if (themeToggleBtn) themeToggleBtn.innerText = '🌙 Dark Mode';
+    } else {
+        if (themeToggleBtn) themeToggleBtn.innerText = '☀️ Light Mode';
+    }
+});
+
+const themeToggleBtn = document.getElementById('theme_toggle');
+if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => {
+        document.documentElement.classList.toggle('light-mode');
+
+        if (document.documentElement.classList.contains('light-mode')) {
+            themeToggleBtn.innerText = '🌙 Dark Mode';
+            localStorage.setItem('theme', 'light');
+        } else {
+            themeToggleBtn.innerText = '☀️ Light Mode';
+            localStorage.setItem('theme', 'dark');
+        }
+        updateThemeSmoothly();
     });
 }
