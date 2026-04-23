@@ -320,8 +320,10 @@ div {
 a,
 a:visited, a:active {
     color: var(--text-color);
+    transition: 0.3s;
 }
 
 a:hover {
     color: var(--accent-color);
+    transform: scale(1.02);
 }
