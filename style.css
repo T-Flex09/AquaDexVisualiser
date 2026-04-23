@@ -1,18 +1,18 @@
 :root {
-    --background-color: #222;
-    --border-color: #444;
-    --angle: 0deg;
-    --text-color: #eee;
-    --hover-background-color: #333;
-    --accent-color: #59f;
+	--background-color: #222;
+	--border-color: #444;
+	--angle: 0deg;
+	--text-color: #eee;
+	--hover-background-color: #333;
+	--accent-color: #59f;
 }
 
 :root.light-mode {
-    --background-color: #f4f4f4;
-    --border-color: #ccc;
-    --text-color: #222;
-    --hover-background-color: #e0e0e0;
-    --accent-color: #24c;
+	--background-color: #f4f4f4;
+	--border-color: #ccc;
+	--text-color: #222;
+	--hover-background-color: #e0e0e0;
+	--accent-color: #24c;
 }
 
 /* Aplicăm tranziția doar elementelor de culoare pentru a nu bloca bordura animată */
@@ -29,301 +29,318 @@ span,
 ul,
 li,
 strong {
-    transition: background-color 0.5s, color 0.5s, border-color 0.5s, box-shadow 0.5s;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+	transition:
+		background-color 0.5s,
+		color 0.5s,
+		border-color 0.5s,
+		box-shadow 0.5s;
+	font-family:
+		system-ui,
+		-apple-system,
+		BlinkMacSystemFont,
+		"Segoe UI",
+		Roboto,
+		Oxygen,
+		Ubuntu,
+		Cantarell,
+		"Open Sans",
+		"Helvetica Neue",
+		sans-serif;
 }
 
 @keyframes border-anim {
-    0% {
-        --angle: 0deg;
-    }
+	0% {
+		--angle: 0deg;
+	}
 
-    100% {
-        --angle: 360deg;
-    }
+	100% {
+		--angle: 360deg;
+	}
 }
 
 @property --angle {
-    syntax: "<angle>";
-    initial-value: 0deg;
-    inherits: true;
+	syntax: "<angle>";
+	initial-value: 0deg;
+	inherits: true;
 }
 
 body {
-    background-color: var(--background-color);
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
+	background-color: var(--background-color);
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-height: 100vh;
 }
 
 /* Layout-ul Dashboard-ului Principal (100% din ecran) */
 #fullscreen_view {
-    width: 100%;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1em;
-    box-sizing: border-box;
-    padding-bottom: 2em;
+	width: 100%;
+	height: 100vh;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1em;
+	box-sizing: border-box;
+	padding-bottom: 2em;
 }
 
 h1 {
-    color: var(--text-color);
-    margin-left: 2em;
+	color: var(--text-color);
+	margin-left: 2em;
 }
 
 span {
-    color: var(--accent-color);
+	color: var(--accent-color);
 }
 
-input[type=file] {
-    border: none;
-    border-radius: 1em;
-    height: 100%;
-    width: 100%;
-    padding-top: .5em;
-    text-align: center;
-    background-color: var(--background-color);
-    color: var(--text-color);
+input[type="file"] {
+	border: none;
+	border-radius: 1em;
+	height: 100%;
+	width: 100%;
+	padding-top: 0.5em;
+	text-align: center;
+	background-color: var(--background-color);
+	color: var(--text-color);
 }
 
 ::file-selector-button {
-    display: none;
+	display: none;
 }
 
-input[type=file]:hover {
-    background-color: var(--hover-background-color);
-    cursor: pointer;
+input[type="file"]:hover {
+	background-color: var(--hover-background-color);
+	cursor: pointer;
 }
 
 div {
-    margin: 0;
+	margin: 0;
 }
 
 #title {
-    width: 95%;
-    background-image: linear-gradient(var(--angle), #59f, #24c);
-    background-origin: border-box;
-    box-shadow: inset 0 0 0 1000px var(--background-color);
-    border: 4px solid transparent;
-    border-radius: 1em;
-    margin-top: 1em;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    animation: border-anim 5s linear infinite;
+	width: 95%;
+	background-image: linear-gradient(var(--angle), #59f, #24c);
+	background-origin: border-box;
+	box-shadow: inset 0 0 0 1000px var(--background-color);
+	border: 4px solid transparent;
+	border-radius: 1em;
+	margin-top: 1em;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	animation: border-anim 5s linear infinite;
 }
 
 #theme_toggle,
 #view_toggle {
-    background-color: var(--background-color);
-    color: var(--text-color);
-    background-image: linear-gradient(var(--angle), #59f, #24c);
-    background-origin: border-box;
-    box-shadow: inset 0 0 0 1000px var(--background-color);
-    border: 4px solid transparent;
-    border-radius: 1em;
-    padding: 0.5em 1em;
-    margin-right: 2em;
-    cursor: pointer;
-    font-weight: bold;
-    animation: border-anim 5s linear infinite;
+	background-color: var(--background-color);
+	color: var(--text-color);
+	background-image: linear-gradient(var(--angle), #59f, #24c);
+	background-origin: border-box;
+	box-shadow: inset 0 0 0 1000px var(--background-color);
+	border: 4px solid transparent;
+	border-radius: 1em;
+	padding: 0.5em 1em;
+	margin-right: 2em;
+	cursor: pointer;
+	font-weight: bold;
+	animation: border-anim 5s linear infinite;
 }
 
 #theme_toggle:hover,
 #view_toggle:hover {
-    background-color: var(--hover-background-color);
+	background-color: var(--hover-background-color);
 }
 
 #view_toggle {
-    transition: background-color 0.5s, color 0.5s, box-shadow 0.5s;
+	transition:
+		background-color 0.5s,
+		color 0.5s,
+		box-shadow 0.5s;
 }
 
 #graph_body {
-    width: 95%;
-    display: flex;
-    gap: 1em;
-    flex-grow: 1;
-    margin-bottom: 1em;
-    min-height: 0;
-    /* Ajută flexbox-ul să nu dea overflow */
+	width: 95%;
+	display: flex;
+	gap: 1em;
+	flex-grow: 1;
+	margin-bottom: 1em;
+	min-height: 0;
+	/* Ajută flexbox-ul să nu dea overflow */
 }
 
 #graph_container {
-    background-image: linear-gradient(var(--angle), #59f, #24c);
-    background-origin: border-box;
-    box-shadow: inset 0 0 0 10000px var(--background-color);
-    border: 4px solid transparent;
-    border-radius: 1em;
-    flex: 4;
-    position: relative;
-    padding: 1em;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    animation: border-anim 5s linear infinite;
+	background-image: linear-gradient(var(--angle), #59f, #24c);
+	background-origin: border-box;
+	box-shadow: inset 0 0 0 10000px var(--background-color);
+	border: 4px solid transparent;
+	border-radius: 1em;
+	flex: 4;
+	position: relative;
+	padding: 1em;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	animation: border-anim 5s linear infinite;
 }
 
 #graph {
-    flex-grow: 1;
-    position: relative;
-    width: 100%;
+	flex-grow: 1;
+	position: relative;
+	width: 100%;
 }
 
 /* Controale Playback */
 #playback_controls {
-    display: flex;
-    gap: 10px;
-    margin-top: 15px;
-    align-items: center;
+	display: flex;
+	gap: 10px;
+	margin-top: 15px;
+	align-items: center;
 }
 
 #play_btn {
-    background-color: var(--accent-color);
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 8px 15px;
-    cursor: pointer;
-    font-weight: bold;
+	background-color: var(--accent-color);
+	color: white;
+	border: none;
+	border-radius: 5px;
+	padding: 8px 15px;
+	cursor: pointer;
+	font-weight: bold;
 }
 
 #play_btn:hover {
-    background-color: #47e;
+	background-color: #47e;
 }
 
 #timeline {
-    flex-grow: 1;
-    cursor: pointer;
-    accent-color: var(--accent-color);
+	flex-grow: 1;
+	cursor: pointer;
+	accent-color: var(--accent-color);
 }
 
 #data {
-    display: flex;
-    gap: 1em;
-    flex-direction: column;
-    flex: 1;
-    min-width: 250px;
-    max-width: 350px;
+	display: flex;
+	gap: 1em;
+	flex-direction: column;
+	flex: 1;
+	min-width: 250px;
+	max-width: 350px;
 }
 
 #data_input,
 #data_selection {
-    background-image: linear-gradient(var(--angle), #59f, #24c);
-    background-origin: border-box;
-    box-shadow: inset 0 0 0 10000px var(--background-color);
-    border: 4px solid transparent;
-    border-radius: 1em;
-    animation: border-anim 5s linear infinite;
+	background-image: linear-gradient(var(--angle), #59f, #24c);
+	background-origin: border-box;
+	box-shadow: inset 0 0 0 10000px var(--background-color);
+	border: 4px solid transparent;
+	border-radius: 1em;
+	animation: border-anim 5s linear infinite;
 }
 
 #data_input {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 4px 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 4px 0;
 }
 
 #data_selection {
-    display: flex;
-    flex-direction: column;
-    padding: 1em;
-    gap: 0.5em;
-    flex-grow: 1;
-    overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	padding: 1em;
+	gap: 0.5em;
+	flex-grow: 1;
+	overflow-y: auto;
 }
 
 /* Stilizare Checkbox-uri Mari */
 #data_selection div {
-    margin-bottom: .09em;
+	margin-bottom: 0.09em;
 }
 
 #data_selection input[type="checkbox"] {
-    width: 1.5em;
-    height: 1.5em;
-    cursor: pointer;
-    accent-color: var(--accent-color);
+	width: 1.5em;
+	height: 1.5em;
+	cursor: pointer;
+	accent-color: var(--accent-color);
 }
 
 #data_selection span {
-    font-size: 1.25em;
-    font-weight: 500;
-    vertical-align: middle;
+	font-size: 1.25em;
+	font-weight: 500;
+	vertical-align: middle;
 }
 
 /* --- LEGENDA --- */
 #legend_container {
-    width: 95%;
-    background-image: linear-gradient(var(--angle), #59f, #24c);
-    background-origin: border-box;
-    box-shadow: inset 0 0 0 10000px var(--background-color);
-    border: 4px solid transparent;
-    border-radius: 1em;
-    margin-bottom: 2em;
-    padding: 2em;
-    box-sizing: border-box;
-    color: var(--text-color);
-    animation: border-anim 5s linear infinite;
+	width: 95%;
+	background-image: linear-gradient(var(--angle), #59f, #24c);
+	background-origin: border-box;
+	box-shadow: inset 0 0 0 10000px var(--background-color);
+	border: 4px solid transparent;
+	border-radius: 1em;
+	margin-bottom: 2em;
+	padding: 2em;
+	box-sizing: border-box;
+	color: var(--text-color);
+	animation: border-anim 5s linear infinite;
 }
 
 #legend_container h2 {
-    margin-top: 0;
-    font-size: 2em;
-    border-bottom: 2px solid var(--border-color);
-    padding-bottom: 0.5em;
+	margin-top: 0;
+	font-size: 2em;
+	border-bottom: 2px solid var(--border-color);
+	padding-bottom: 0.5em;
 }
 
 #legend_container h3 {
-    color: var(--accent-color);
-    margin-top: 2em;
-    font-size: 1.5em;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 0.3em;
+	color: var(--accent-color);
+	margin-top: 2em;
+	font-size: 1.5em;
+	border-bottom: 1px solid var(--border-color);
+	padding-bottom: 0.3em;
 }
 
 #legend_container h4 {
-    font-size: 1.2em;
-    margin-bottom: 0.5em;
+	font-size: 1.2em;
+	margin-bottom: 0.5em;
 }
 
 #legend_container h4 span {
-    font-size: 0.8em;
-    font-weight: normal;
-    opacity: 0.8;
+	font-size: 0.8em;
+	font-weight: normal;
+	opacity: 0.8;
 }
 
 .legend_item {
-    background-color: var(--hover-background-color);
-    border-radius: 0.5em;
-    padding: 1em;
-    margin-bottom: 1em;
+	background-color: var(--hover-background-color);
+	border-radius: 0.5em;
+	padding: 1em;
+	margin-bottom: 1em;
 }
 
 .legend_item ul {
-    margin: 0;
-    padding-left: 1.5em;
-    line-height: 1.6;
+	margin: 0;
+	padding-left: 1.5em;
+	line-height: 1.6;
 }
 
 .legend_item li {
-    margin-bottom: 0.5em;
+	margin-bottom: 0.5em;
 }
 
 .legend_item ul ul {
-    margin-top: 0.5em;
-    list-style-type: circle;
+	margin-top: 0.5em;
+	list-style-type: circle;
 }
 
 a,
-a:visited, a:active {
-    color: var(--text-color);
-    transition: 0.3s;
+a:visited,
+a:active {
+	color: var(--text-color);
 }
 
 a:hover {
-    color: var(--accent-color);
-    transform: scale(1.02);
+	color: var(--accent-color);
 }
