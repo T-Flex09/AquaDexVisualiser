@@ -46,13 +46,36 @@ strong {
 		"Open Sans",
 		"Helvetica Neue",
 		sans-serif;
+	transition:
+		background-color 0.5s,
+		color 0.5s,
+		border-color 0.5s,
+		box-shadow 0.5s;
+	font-family:
+		system-ui,
+		-apple-system,
+		BlinkMacSystemFont,
+		"Segoe UI",
+		Roboto,
+		Oxygen,
+		Ubuntu,
+		Cantarell,
+		"Open Sans",
+		"Helvetica Neue",
+		sans-serif;
 }
 
 @keyframes border-anim {
 	0% {
 		--angle: 0deg;
 	}
+	0% {
+		--angle: 0deg;
+	}
 
+	100% {
+		--angle: 360deg;
+	}
 	100% {
 		--angle: 360deg;
 	}
@@ -62,9 +85,18 @@ strong {
 	syntax: "<angle>";
 	initial-value: 0deg;
 	inherits: true;
+	syntax: "<angle>";
+	initial-value: 0deg;
+	inherits: true;
 }
 
 body {
+	background-color: var(--background-color);
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-height: 100vh;
 	background-color: var(--background-color);
 	margin: 0;
 	display: flex;
@@ -83,17 +115,37 @@ body {
 	gap: 1em;
 	box-sizing: border-box;
 	padding-bottom: 2em;
+	width: 100%;
+	height: 100vh;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1em;
+	box-sizing: border-box;
+	padding-bottom: 2em;
 }
 
 h1 {
+	color: var(--text-color);
+	margin-left: 2em;
 	color: var(--text-color);
 	margin-left: 2em;
 }
 
 span {
 	color: var(--accent-color);
+	color: var(--accent-color);
 }
 
+input[type="file"] {
+	border: none;
+	border-radius: 1em;
+	height: 100%;
+	width: 100%;
+	padding-top: 0.5em;
+	text-align: center;
+	background-color: var(--background-color);
+	color: var(--text-color);
 input[type="file"] {
 	border: none;
 	border-radius: 1em;
@@ -107,14 +159,19 @@ input[type="file"] {
 
 ::file-selector-button {
 	display: none;
+	display: none;
 }
 
+input[type="file"]:hover {
+	background-color: var(--hover-background-color);
+	cursor: pointer;
 input[type="file"]:hover {
 	background-color: var(--hover-background-color);
 	cursor: pointer;
 }
 
 div {
+	margin: 0;
 	margin: 0;
 }
 
@@ -151,6 +208,7 @@ div {
 #theme_toggle:hover,
 #view_toggle:hover {
 	background-color: var(--hover-background-color);
+	background-color: var(--hover-background-color);
 }
 
 #view_toggle {
@@ -158,9 +216,20 @@ div {
 		background-color 0.5s,
 		color 0.5s,
 		box-shadow 0.5s;
+	transition:
+		background-color 0.5s,
+		color 0.5s,
+		box-shadow 0.5s;
 }
 
 #graph_body {
+	width: 95%;
+	display: flex;
+	gap: 1em;
+	flex-grow: 1;
+	margin-bottom: 1em;
+	min-height: 0;
+	/* Ajută flexbox-ul să nu dea overflow */
 	width: 95%;
 	display: flex;
 	gap: 1em;
@@ -189,6 +258,9 @@ div {
 	flex-grow: 1;
 	position: relative;
 	width: 100%;
+	flex-grow: 1;
+	position: relative;
+	width: 100%;
 }
 
 /* Controale Playback */
@@ -197,9 +269,20 @@ div {
 	gap: 10px;
 	margin-top: 15px;
 	align-items: center;
+	display: flex;
+	gap: 10px;
+	margin-top: 15px;
+	align-items: center;
 }
 
 #play_btn {
+	background-color: var(--accent-color);
+	color: white;
+	border: none;
+	border-radius: 5px;
+	padding: 8px 15px;
+	cursor: pointer;
+	font-weight: bold;
 	background-color: var(--accent-color);
 	color: white;
 	border: none;
@@ -217,9 +300,18 @@ div {
 	flex-grow: 1;
 	cursor: pointer;
 	accent-color: var(--accent-color);
+	flex-grow: 1;
+	cursor: pointer;
+	accent-color: var(--accent-color);
 }
 
 #data {
+	display: flex;
+	gap: 1em;
+	flex-direction: column;
+	flex: 1;
+	min-width: 250px;
+	max-width: 350px;
 	display: flex;
 	gap: 1em;
 	flex-direction: column;
@@ -243,9 +335,19 @@ div {
 	justify-content: center;
 	align-items: center;
 	padding: 4px 0;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 4px 0;
 }
 
 #data_selection {
+	display: flex;
+	flex-direction: column;
+	padding: 1em;
+	gap: 0.5em;
+	flex-grow: 1;
+	overflow-y: auto;
 	display: flex;
 	flex-direction: column;
 	padding: 1em;
@@ -257,6 +359,7 @@ div {
 /* Stilizare Checkbox-uri Mari */
 #data_selection div {
 	margin-bottom: 0.09em;
+	margin-bottom: 0.09em;
 }
 
 #data_selection input[type="checkbox"] {
@@ -264,9 +367,16 @@ div {
 	height: 1.5em;
 	cursor: pointer;
 	accent-color: var(--accent-color);
+	width: 1.5em;
+	height: 1.5em;
+	cursor: pointer;
+	accent-color: var(--accent-color);
 }
 
 #data_selection span {
+	font-size: 1.25em;
+	font-weight: 500;
+	vertical-align: middle;
 	font-size: 1.25em;
 	font-weight: 500;
 	vertical-align: middle;
@@ -292,9 +402,18 @@ div {
 	font-size: 2em;
 	border-bottom: 2px solid var(--border-color);
 	padding-bottom: 0.5em;
+	margin-top: 0;
+	font-size: 2em;
+	border-bottom: 2px solid var(--border-color);
+	padding-bottom: 0.5em;
 }
 
 #legend_container h3 {
+	color: var(--accent-color);
+	margin-top: 2em;
+	font-size: 1.5em;
+	border-bottom: 1px solid var(--border-color);
+	padding-bottom: 0.3em;
 	color: var(--accent-color);
 	margin-top: 2em;
 	font-size: 1.5em;
@@ -305,9 +424,14 @@ div {
 #legend_container h4 {
 	font-size: 1.2em;
 	margin-bottom: 0.5em;
+	font-size: 1.2em;
+	margin-bottom: 0.5em;
 }
 
 #legend_container h4 span {
+	font-size: 0.8em;
+	font-weight: normal;
+	opacity: 0.8;
 	font-size: 0.8em;
 	font-weight: normal;
 	opacity: 0.8;
@@ -318,9 +442,16 @@ div {
 	border-radius: 0.5em;
 	padding: 1em;
 	margin-bottom: 1em;
+	background-color: var(--hover-background-color);
+	border-radius: 0.5em;
+	padding: 1em;
+	margin-bottom: 1em;
 }
 
 .legend_item ul {
+	margin: 0;
+	padding-left: 1.5em;
+	line-height: 1.6;
 	margin: 0;
 	padding-left: 1.5em;
 	line-height: 1.6;
@@ -328,9 +459,12 @@ div {
 
 .legend_item li {
 	margin-bottom: 0.5em;
+	margin-bottom: 0.5em;
 }
 
 .legend_item ul ul {
+	margin-top: 0.5em;
+	list-style-type: circle;
 	margin-top: 0.5em;
 	list-style-type: circle;
 }
@@ -346,3 +480,4 @@ a:hover {
 	color: var(--accent-color);
 	transform: scale(1.02);
 }
+
