@@ -1,8 +1,8 @@
 # _Pasii de operare a submarinului_
 
-**Pasul 1.** Deschideti un terminal (Command prompt pe Windows, Terminal pe Mac/Linux).<br>
-**Pasul 2.** Stabiliti o conexiune cu submarinul prin a crea o retea hotspot pe calculator cu numele _HOTSPOT_, parola _12345678_.<br>
-**Pasul 3.** Odata ce se conecteaza, verifica ip-ul alocat submarinului in retea, sub numele de _aquadex_.<br>
+**Pasul 1.** Deschideti un terminal (Command prompt pe Windows, Terminal pe Mac/Linux).<br><br>
+**Pasul 2.** Stabiliti o conexiune cu submarinul prin a crea o retea hotspot pe calculator cu numele _HOTSPOT_, parola _12345678_.<br><br>
+**Pasul 3.** Odata ce se conecteaza, verifica ip-ul alocat submarinului in retea, sub numele de _aquadex_.<br><br>
 **Pasul 4.** Conectati-va prin ssh cu robotul folosind comanda:
 
 ```batch
