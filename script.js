@@ -247,7 +247,7 @@ function generateSubmarinePathAndFilterSensors() {
 
 	csvXData = findData(["x", "pos_x"]) || [];
 	csvYData = findData(["y", "pos_y"]) || [];
-	csvZData = findData(["z", "pos_z", "adancime"]) || [];
+	csvZData = findData(["z", "pos_z"]) || [];
 	csvPitchData = findData(["pitch"]) || [];
 	csvRollData = findData(["roll"]) || [];
 	csvYawData = findData(["heading", "yaw"]) || [];
@@ -329,13 +329,13 @@ function adjustCameraAndFloor() {
 	let gridSquareSize = Math.max(finalSizeX, finalSizeZ);
 
 	if (oceanFloor) {
-		let seabedY = -pathBounds.maxY - 50;
+		let seabedY = -pathBounds.maxY;
 		oceanFloor.position.set(
 			pathCenter.x * WORLD_SCALE,
 			seabedY * WORLD_SCALE,
 			pathCenter.z * WORLD_SCALE,
 		);
-		oceanFloor.scale.set(gridSquareSize / 10, gridSquareSize / 10, gridSquareSize / 10);
+		oceanFloor.scale.set(gridSquareSize, gridSquareSize, gridSquareSize);
 	}
 
 	if (controls) {
@@ -365,8 +365,8 @@ function adjustCameraAndFloor() {
 	if (controls) {
 		controls.minPolarAngle = 0.3;
 		controls.maxPolarAngle = 1.2;
-		controls.minDistance = 100;
-		controls.maxDistance = cameraDistance * 3;
+		controls.minDistance = 0;
+		controls.maxDistance = cameraDistance * 5;
 	}
 }
 
@@ -493,7 +493,7 @@ document.getElementById("file_input").addEventListener("change", (event) => {
 
 					setTimeout(() => {
 						targetEl.style.backgroundColor = "";
-					}, 2000);
+					}, 500);
 				}
 			});
 
@@ -662,7 +662,7 @@ function initThreeJS() {
 	scene.background = new THREE.Color(
 		document.documentElement.classList.contains("light-mode") ? 0x87ceeb : 0x0067ff,
 	);
-	scene.fog = new THREE.Fog(scene.background, 500, 2000);
+	scene.fog = new THREE.Fog(scene.background, 500, 100000);
 
 	camera = new THREE.PerspectiveCamera(
 		45,
@@ -670,7 +670,7 @@ function initThreeJS() {
 		0.1,
 		100000,
 	);
-	camera.position.set(200, 150, 200); // Isometric starting position
+	camera.position.set(0, 0, 0); // Isometric starting position
 
 	renderer = new THREE.WebGLRenderer({ antialias: true });
 	renderer.setSize(container.clientWidth, container.clientHeight);
@@ -686,7 +686,7 @@ function initThreeJS() {
 	controls = new THREE.OrbitControls(camera, renderer.domElement);
 	controls.enableDamping = true;
 	controls.dampingFactor = 0.05;
-	controls.maxPolarAngle = Math.PI / 2;
+	controls.maxPolarAngle = Math.PI * 2;
 
 	// Lighting - CRITICAL for 3D to not be black
 	const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);

@@ -146,15 +146,6 @@ input[type="file"] {
 	text-align: center;
 	background-color: var(--background-color);
 	color: var(--text-color);
-input[type="file"] {
-	border: none;
-	border-radius: 1em;
-	height: 100%;
-	width: 100%;
-	padding-top: 0.5em;
-	text-align: center;
-	background-color: var(--background-color);
-	color: var(--text-color);
 }
 
 ::file-selector-button {
@@ -162,9 +153,6 @@ input[type="file"] {
 	display: none;
 }
 
-input[type="file"]:hover {
-	background-color: var(--hover-background-color);
-	cursor: pointer;
 input[type="file"]:hover {
 	background-color: var(--hover-background-color);
 	cursor: pointer;
@@ -277,14 +265,14 @@ div {
 
 #play_btn {
 	background-color: var(--accent-color);
-	color: white;
+	color: var(--text-color);
 	border: none;
 	border-radius: 5px;
 	padding: 8px 15px;
 	cursor: pointer;
 	font-weight: bold;
 	background-color: var(--accent-color);
-	color: white;
+	color: var(--text-color);
 	border: none;
 	border-radius: 5px;
 	padding: 8px 15px;
@@ -480,4 +468,3 @@ a:hover {
 	color: var(--accent-color);
 	transform: scale(1.02);
 }
-
