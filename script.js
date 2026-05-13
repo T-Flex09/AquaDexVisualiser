@@ -402,7 +402,7 @@ function createTextLabel(text) {
 	});
 
 	const sprite = new THREE.Sprite(spriteMaterial);
-	sprite.scale.set(100, 30, 2.5);
+	sprite.scale.set(1000, 300, 25);
 
 	return sprite;
 }
@@ -743,7 +743,7 @@ function initThreeJS() {
 		"submarin.glb",
 		function (gltf) {
 			const model = gltf.scene;
-			model.scale.set(0.05, 0.05, 0.05);
+			model.scale.set(1, 1, 1);
 			model.traverse((child) => {
 				if (child.isMesh) {
 					child.material.needsUpdate = true;
