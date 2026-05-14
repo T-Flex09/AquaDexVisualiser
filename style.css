@@ -5,6 +5,7 @@
 	--text-color: #eee;
 	--hover-background-color: #006;
 	--accent-color: #cc6700;
+	--border-size: 5px;
 }
 
 :root.light-mode {
@@ -46,35 +47,20 @@ strong {
 		"Open Sans",
 		"Helvetica Neue",
 		sans-serif;
-	transition:
-		background-color 0.5s,
-		color 0.5s,
-		border-color 0.5s,
-		box-shadow 0.5s;
-	font-family:
-		system-ui,
-		-apple-system,
-		BlinkMacSystemFont,
-		"Segoe UI",
-		Roboto,
-		Oxygen,
-		Ubuntu,
-		Cantarell,
-		"Open Sans",
-		"Helvetica Neue",
-		sans-serif;
 }
 
 @keyframes border-anim {
 	0% {
 		--angle: 0deg;
 	}
-	0% {
-		--angle: 0deg;
+	25% {
+		--angle: 90deg;
 	}
-
-	100% {
-		--angle: 360deg;
+	50% {
+		--angle: 180deg;
+	}
+	75% {
+		--angle: 270deg;
 	}
 	100% {
 		--angle: 360deg;
@@ -85,20 +71,16 @@ strong {
 	syntax: "<angle>";
 	initial-value: 0deg;
 	inherits: true;
-	syntax: "<angle>";
-	initial-value: 0deg;
-	inherits: true;
 }
 
 body {
-	background-color: var(--background-color);
+	background-image: repeating-linear-gradient(
+		var(--angle),
+		var(--background-color) 0%,
+		var(--accent-color) 100%
+	);
 	margin: 0;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	min-height: 100vh;
-	background-color: var(--background-color);
-	margin: 0;
+	animation: border-anim 15s infinite;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -107,14 +89,6 @@ body {
 
 /* Layout-ul Dashboard-ului Principal (100% din ecran) */
 #fullscreen_view {
-	width: 100%;
-	height: 100vh;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 1em;
-	box-sizing: border-box;
-	padding-bottom: 2em;
 	width: 100%;
 	height: 100vh;
 	display: flex;
@@ -163,7 +137,7 @@ div {
 	background-image: linear-gradient(var(--angle), var(--border-color), var(--accent-color));
 	background-origin: border-box;
 	box-shadow: inset 0 0 0 1000px var(--background-color);
-	border: 4px solid transparent;
+	border: var(--border-size) solid transparent;
 	border-radius: 1em;
 	margin-top: 1em;
 	display: flex;
@@ -179,7 +153,7 @@ div {
 	background-image: linear-gradient(var(--angle), var(--border-color), var(--accent-color));
 	background-origin: border-box;
 	box-shadow: inset 0 0 0 1000px var(--background-color);
-	border: 4px solid transparent;
+	border: var(--border-size) solid transparent;
 	border-radius: 1em;
 	padding: 0.5em 1em;
 	margin-right: 2em;
@@ -214,7 +188,7 @@ div {
 	background-image: linear-gradient(var(--angle), var(--border-color), var(--accent-color));
 	background-origin: border-box;
 	box-shadow: inset 0 0 0 10000px var(--background-color);
-	border: 4px solid transparent;
+	border: var(--border-size) solid transparent;
 	border-radius: 1em;
 	flex: 4;
 	position: relative;
@@ -273,7 +247,7 @@ div {
 	background-image: linear-gradient(var(--angle), var(--border-color), var(--accent-color));
 	background-origin: border-box;
 	box-shadow: inset 0 0 0 10000px var(--background-color);
-	border: 4px solid transparent;
+	border: var(--border-size) solid transparent;
 	border-radius: 1em;
 	animation: border-anim 5s linear infinite;
 }
@@ -318,7 +292,7 @@ div {
 	background-image: linear-gradient(var(--angle), var(--border-color), var(--accent-color));
 	background-origin: border-box;
 	box-shadow: inset 0 0 0 10000px var(--background-color);
-	border: 4px solid transparent;
+	border: var(--border-size) solid transparent;
 	border-radius: 1em;
 	margin-bottom: 2em;
 	padding: 2em;
