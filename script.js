@@ -51,7 +51,7 @@ let submarinePathCurve;
 let visualProgress = 0;
 let pathBounds = { minX: 0, maxX: 0, minZ: 0, maxZ: 0, minY: 0, maxY: 0 };
 let pathCenter = new THREE.Vector3(0, 0, 0);
-const WORLD_SCALE = 15;
+const WORLD_SCALE = 150;
 
 // Date din CSV pentru vizualizare
 let csvPitchData = [];
@@ -255,6 +255,15 @@ function generateSubmarinePathAndFilterSensors() {
 	csvMotorDrData = findData(["m_dr"]) || [];
 	csvMotorTopData = findData(["m_top"]) || [];
 
+	// ====================================================
+	// ====== SETĂRI OFFSET (în unități relative) =========
+	// Adunând 50 aici, în spațiul 3D va deveni 50 * WORLD_SCALE
+	// ====================================================
+	const OFFSET_X = 50;
+	const OFFSET_Y = 0;
+	const OFFSET_Z = 0;
+	// ====================================================
+
 	pathBounds = {
 		minX: Infinity,
 		maxX: -Infinity,
@@ -264,10 +273,11 @@ function generateSubmarinePathAndFilterSensors() {
 		maxY: -Infinity,
 	};
 
+	// 1. Calculăm limitele (Bounds) folosind offset-ul
 	for (let i = 0; i < csvXData.length; i++) {
-		let x = csvXData[i] || 0;
-		let y = csvYData[i] || 0;
-		let z = csvZData[i] || 0;
+		let x = (csvXData[i] || 0) + OFFSET_X;
+		let y = (csvYData[i] || 0) + OFFSET_Y;
+		let z = (csvZData[i] || 0) + OFFSET_Z;
 
 		pathBounds.minX = Math.min(pathBounds.minX, x);
 		pathBounds.maxX = Math.max(pathBounds.maxX, x);
@@ -282,10 +292,14 @@ function generateSubmarinePathAndFilterSensors() {
 	}
 
 	let rawPoints = [];
+
+	// 2. Generăm Path-ul efectiv aplicând din nou offset-ul
 	for (let i = 0; i < csvXData.length; i++) {
-		let x = csvXData[i] || 0;
-		let y = csvZData[i] || 0;
-		let z = csvYData[i] || 0;
+		let x = (csvXData[i] || 0) + OFFSET_X;
+		let y = (csvZData[i] || 0) + OFFSET_Z; // În codul tău original, csvZ se mapa la Y
+		let z = (csvYData[i] || 0) + OFFSET_Y; // și csvY se mapa la Z
+
+		// Când se înmulțește cu WORLD_SCALE aici, offset-ul tău de 50 devine 50 * WORLD_SCALE
 		rawPoints.push(new THREE.Vector3(x * WORLD_SCALE, -y * WORLD_SCALE, z * WORLD_SCALE));
 	}
 
@@ -310,7 +324,7 @@ function generateSubmarinePathAndFilterSensors() {
 		adjustCameraAndFloor();
 	}
 
-	console.log(`[3D] Traseu generat: ${rawPoints.length} puncte`);
+	console.log(`[3D] Traseu generat: ${rawPoints.length} puncte cu OFFSET_X: ${OFFSET_X}`);
 }
 
 // ==========================================
@@ -329,13 +343,13 @@ function adjustCameraAndFloor() {
 	let gridSquareSize = Math.max(finalSizeX, finalSizeZ);
 
 	if (oceanFloor) {
-		let seabedY = -pathBounds.maxY;
+		let seabedY = -pathBounds.maxY - 10;
 		oceanFloor.position.set(
 			pathCenter.x * WORLD_SCALE,
 			seabedY * WORLD_SCALE,
 			pathCenter.z * WORLD_SCALE,
 		);
-		oceanFloor.scale.set(gridSquareSize, gridSquareSize, gridSquareSize);
+		oceanFloor.scale.set(gridSquareSize * 10, gridSquareSize * 10, gridSquareSize * 10);
 	}
 
 	if (controls) {
@@ -348,13 +362,9 @@ function adjustCameraAndFloor() {
 	}
 
 	const ISO_ANGLE = 0.615;
-	const cameraDistance = gridSquareSize * 0.5;
+	const cameraDistance = gridSquareSize * 5;
 
-	camera.position.set(
-		pathCenter.x * WORLD_SCALE + cameraDistance * Math.cos(ISO_ANGLE),
-		pathCenter.y * WORLD_SCALE + cameraDistance * Math.sin(ISO_ANGLE),
-		pathCenter.z * WORLD_SCALE + cameraDistance * Math.cos(ISO_ANGLE),
-	);
+	camera.position.set(0, 0, 0);
 
 	camera.lookAt(
 		pathCenter.x * WORLD_SCALE,
@@ -366,7 +376,7 @@ function adjustCameraAndFloor() {
 		controls.minPolarAngle = 0.3;
 		controls.maxPolarAngle = 1.2;
 		controls.minDistance = 0;
-		controls.maxDistance = cameraDistance * 5;
+		controls.maxDistance = cameraDistance * 50;
 	}
 }
 
@@ -662,7 +672,7 @@ function initThreeJS() {
 	scene.background = new THREE.Color(
 		document.documentElement.classList.contains("light-mode") ? 0x87ceeb : 0x0067ff,
 	);
-	scene.fog = new THREE.Fog(scene.background, 500, 100000);
+	scene.fog = new THREE.Fog(scene.background, 500, 30000);
 
 	camera = new THREE.PerspectiveCamera(
 		45,
