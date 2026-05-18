@@ -777,32 +777,48 @@ function initThreeJS() {
 }
 
 function update3DSubmarinePosition() {
-	if (!submarine || fullTimeData.length === 0 || !submarinePathCurve) return;
+	if (!submarine || fullTimeData.length === 0) return;
 
-	const targetProgress = currentIndex / (fullTimeData.length - 1);
+	// 1. Calculate the target position directly from the current telemetry row
+	// (Applying the exact same offsets used when generating the environment)
+	const OFFSET_X = 50;
+	const OFFSET_Y = 0;
+	const OFFSET_Z = 0;
 
-	// Filter discrete timeline jumps by lowering interpolation speed from 0.6 to 0.05
-	if (Math.abs(targetProgress - visualProgress) > 0.5) {
-		visualProgress = targetProgress;
-	} else {
-		visualProgress += (targetProgress - visualProgress) * 0.05;
+	let targetX = (csvXData[currentIndex] || 0) + OFFSET_X;
+	let targetY = (csvZData[currentIndex] || 0) + OFFSET_Y; // Note: Y and Z swapped for 3D space
+	let targetZ = (csvYData[currentIndex] || 0) + OFFSET_Z;
+
+	let targetPos = new THREE.Vector3(
+		targetX * WORLD_SCALE,
+		-targetY * WORLD_SCALE,
+		targetZ * WORLD_SCALE,
+	);
+
+	// 2. Smoothly glide exactly to the telemetry coordinate
+	submarine.position.lerp(targetPos, 0.15);
+
+	// 3. Look slightly ahead in the TELEMETRY (not a curve) to calculate heading
+	let nextIndex = Math.min(currentIndex + 5, fullTimeData.length - 1); // Look 5 frames ahead for stable heading
+	let nextX = (csvXData[nextIndex] || 0) + OFFSET_X;
+	let nextY = (csvZData[nextIndex] || 0) + OFFSET_Y;
+	let nextZ = (csvYData[nextIndex] || 0) + OFFSET_Z;
+
+	let lookTarget = new THREE.Vector3(
+		nextX * WORLD_SCALE,
+		-nextY * WORLD_SCALE,
+		nextZ * WORLD_SCALE,
+	);
+
+	// Only update rotation if the submarine is actually moving
+	if (targetPos.distanceTo(lookTarget) > 0.1) {
+		const dummyCompass = new THREE.Object3D();
+		dummyCompass.position.copy(submarine.position);
+		dummyCompass.lookAt(lookTarget);
+		submarine.quaternion.slerp(dummyCompass.quaternion, 0.08);
 	}
 
-	let safeProgress = Math.max(0.0001, Math.min(0.9999, visualProgress));
-
-	const currentPos = submarinePathCurve.getPointAt(safeProgress);
-	submarine.position.lerp(currentPos, 0.15);
-
-	// Look slightly ahead on the curve to calculate heading direction
-	let nextPos = submarinePathCurve.getPointAt(Math.min(safeProgress + 0.005, 0.9999));
-	let lookTarget = nextPos.clone();
-
-	const dummyCompass = new THREE.Object3D();
-	dummyCompass.position.copy(submarine.position);
-	dummyCompass.lookAt(lookTarget);
-
-	submarine.quaternion.slerp(dummyCompass.quaternion, 0.08);
-
+	// 4. Apply pitch and roll directly from telemetry
 	let targetPitch = csvPitchData[currentIndex] || 0;
 	let targetRoll = csvRollData[currentIndex] || 0;
 
