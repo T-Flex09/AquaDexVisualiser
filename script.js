@@ -71,47 +71,39 @@ let csvMotorTopData = [];
 function getLegendIdForColumn(colName) {
 	let nume = colName.trim().toLowerCase();
 
-	if (
-		nume.includes("dist") ||
-		nume.includes("d_") ||
-		["fata", "spate", "stanga", "dreapta", "jos"].some((d) => nume.includes(d))
-	) {
-		return "legend_distante";
-	}
-	if (nume.includes("temp")) {
-		return "legend_temperatura";
-	}
-	if (nume.includes("ph")) {
-		return "legend_ph";
-	}
-	if (nume.includes("tds") || nume.includes("puritate")) {
-		return "legend_puritate_tds";
-	}
-	if (nume.includes("turbiditate") || nume.includes("ntu")) {
-		return "legend_turbiditate";
-	}
+	const rules = [
+		{
+			id: "legend_distante",
+			match: [
+				"dist",
+				"d_",
+				"fata",
+				"spate",
+				"stanga",
+				"dreapta",
+				"jos",
+				"x",
+				"y",
+				"z",
+				"pos",
+				"m_",
+				"motor",
+				"bat",
+				"stare",
+			],
+		},
+		{ id: "legend_temperatura", match: ["temp"] },
+		{ id: "legend_ph", match: ["ph"] },
+		{ id: "legend_puritate_tds", match: ["tds", "puritate"] },
+		{ id: "legend_turbiditate", match: ["turbiditate", "ntu"] },
+		{ id: "legend_acc", match: ["acc", "accel"] },
+		{ id: "legend_gyro", match: ["gyro", "giro", "heading", "yaw", "pitch", "roll"] },
+	];
 
-	if (nume.includes("acc") || nume.includes("accel")) {
-		return "legend_acc";
-	}
-	if (
-		nume.includes("gyro") ||
-		nume.includes("giro") ||
-		nume.includes("heading") ||
-		nume.includes("yaw") ||
-		nume.includes("pitch") ||
-		nume.includes("roll")
-	) {
-		return "legend_gyro";
-	}
-	if (["x", "y", "z"].includes(nume) || nume.includes("pos")) {
-		return "legend_distante";
-	}
-	if (nume.includes("m_") || nume.includes("motor")) {
-		return "legend_distante";
-	}
-	if (nume.includes("bat") || nume.includes("stare")) {
-		return "legend_distante";
+	for (let rule of rules) {
+		if (rule.match.some((keyword) => nume.includes(keyword))) {
+			return rule.id;
+		}
 	}
 
 	return "legend_" + nume.replace(/[^a-z]/g, "");
@@ -296,10 +288,9 @@ function generateSubmarinePathAndFilterSensors() {
 	// 2. Generăm Path-ul efectiv aplicând din nou offset-ul
 	for (let i = 0; i < csvXData.length; i++) {
 		let x = (csvXData[i] || 0) + OFFSET_X;
-		let y = (csvZData[i] || 0) + OFFSET_Z; // În codul tău original, csvZ se mapa la Y
-		let z = (csvYData[i] || 0) + OFFSET_Y; // și csvY se mapa la Z
+		let y = (csvZData[i] || 0) + OFFSET_Y;
+		let z = (csvYData[i] || 0) + OFFSET_Z;
 
-		// Când se înmulțește cu WORLD_SCALE aici, offset-ul tău de 50 devine 50 * WORLD_SCALE
 		rawPoints.push(new THREE.Vector3(x * WORLD_SCALE, -y * WORLD_SCALE, z * WORLD_SCALE));
 	}
 
@@ -346,7 +337,7 @@ function adjustCameraAndFloor() {
 		let seabedY = -pathBounds.maxY - 10;
 		oceanFloor.position.set(
 			pathCenter.x * WORLD_SCALE,
-			seabedY * WORLD_SCALE,
+			seabY * WORLD_SCALE,
 			pathCenter.z * WORLD_SCALE,
 		);
 		oceanFloor.scale.set(gridSquareSize * 10, gridSquareSize * 10, gridSquareSize * 10);
@@ -564,9 +555,6 @@ function startPlayback() {
 			// Apply playback speed multiplier
 			deltaMs = deltaMs / playbackSpeed;
 
-			// Clamp between 10ms and 500ms for stability
-			deltaMs = Math.max(10, Math.min(500, deltaMs));
-
 			currentIndex++;
 			timeline.value = currentIndex;
 			updateChart(false);
@@ -575,6 +563,7 @@ function startPlayback() {
 			// Schedule next frame based on ACTUAL CSV timestamps
 			setTimeout(playStep, deltaMs);
 		} else {
+			// Reached the end
 			pausePlayback();
 		}
 	};
@@ -602,50 +591,29 @@ function updateHUD() {
 
 	const formatHUD = (val) => (val || 0).toFixed(2);
 
-	let el_pitch = document.getElementById("hud_pitch");
-	if (el_pitch) el_pitch.innerText = formatHUD(findData(["pitch"]));
+	// Configurația elementelor HUD și mapping-ul de formatare
+	const hudMappings = [
+		{ id: "hud_pitch", keys: ["pitch"], format: formatHUD },
+		{ id: "hud_roll", keys: ["roll"], format: formatHUD },
+		{ id: "hud_yaw", keys: ["heading", "yaw"], format: formatHUD },
+		{ id: "hud_ax", keys: ["acc_x"], format: formatHUD },
+		{ id: "hud_ay", keys: ["acc_y"], format: formatHUD },
+		{ id: "hud_az", keys: ["acc_z"], format: formatHUD },
+		{ id: "hud_gx", keys: ["gyro_x"], format: formatHUD },
+		{ id: "hud_gy", keys: ["gyro_y"], format: formatHUD },
+		{ id: "hud_gz", keys: ["gyro_z"], format: formatHUD },
+		{ id: "hud_m_stg", keys: ["m_stg"], format: Math.round },
+		{ id: "hud_m_dr", keys: ["m_dr"], format: Math.round },
+		{ id: "hud_m_top", keys: ["m_top"], format: Math.round },
+		{ id: "hud_x", keys: ["x"], format: formatHUD },
+		{ id: "hud_y", keys: ["y"], format: formatHUD },
+		{ id: "hud_z", keys: ["z"], format: formatHUD },
+	];
 
-	let el_roll = document.getElementById("hud_roll");
-	if (el_roll) el_roll.innerText = formatHUD(findData(["roll"]));
-
-	let el_yaw = document.getElementById("hud_yaw");
-	if (el_yaw) el_yaw.innerText = formatHUD(findData(["heading", "yaw"]));
-
-	let el_ax = document.getElementById("hud_ax");
-	if (el_ax) el_ax.innerText = formatHUD(findData(["acc_x"]));
-
-	let el_ay = document.getElementById("hud_ay");
-	if (el_ay) el_ay.innerText = formatHUD(findData(["acc_y"]));
-
-	let el_az = document.getElementById("hud_az");
-	if (el_az) el_az.innerText = formatHUD(findData(["acc_z"]));
-
-	let el_gx = document.getElementById("hud_gx");
-	if (el_gx) el_gx.innerText = formatHUD(findData(["gyro_x"]));
-
-	let el_gy = document.getElementById("hud_gy");
-	if (el_gy) el_gy.innerText = formatHUD(findData(["gyro_y"]));
-
-	let el_gz = document.getElementById("hud_gz");
-	if (el_gz) el_gz.innerText = formatHUD(findData(["gyro_z"]));
-
-	let el_m_stg = document.getElementById("hud_m_stg");
-	if (el_m_stg) el_m_stg.innerText = Math.round(findData(["m_stg"]));
-
-	let el_m_dr = document.getElementById("hud_m_dr");
-	if (el_m_dr) el_m_dr.innerText = Math.round(findData(["m_dr"]));
-
-	let el_m_top = document.getElementById("hud_m_top");
-	if (el_m_top) el_m_top.innerText = Math.round(findData(["m_top"]));
-
-	let el_x = document.getElementById("hud_x");
-	if (el_x) el_x.innerText = formatHUD(findData(["x"]));
-
-	let el_y = document.getElementById("hud_y");
-	if (el_y) el_y.innerText = formatHUD(findData(["y"]));
-
-	let el_z = document.getElementById("hud_z");
-	if (el_z) el_z.innerText = formatHUD(findData(["z"]));
+	hudMappings.forEach((mapping) => {
+		const el = document.getElementById(mapping.id);
+		if (el) el.innerText = mapping.format(findData(mapping.keys));
+	});
 
 	if (timeDisplay) {
 		timeDisplay.innerText = fullTimeData[currentIndex] + "s";
@@ -813,34 +781,36 @@ function update3DSubmarinePosition() {
 
 	const targetProgress = currentIndex / (fullTimeData.length - 1);
 
+	// Filter discrete timeline jumps by lowering interpolation speed from 0.6 to 0.05
 	if (Math.abs(targetProgress - visualProgress) > 0.5) {
 		visualProgress = targetProgress;
 	} else {
-		visualProgress += (targetProgress - visualProgress) * 0.1;
+		visualProgress += (targetProgress - visualProgress) * 0.05;
 	}
 
 	let safeProgress = Math.max(0.0001, Math.min(0.9999, visualProgress));
 
 	const currentPos = submarinePathCurve.getPointAt(safeProgress);
-	submarine.position.lerp(currentPos, 0.1);
+	submarine.position.lerp(currentPos, 0.15);
 
-	let nextPos = submarinePathCurve.getPointAt(Math.min(safeProgress + 0.01, 0.9999));
+	// Look slightly ahead on the curve to calculate heading direction
+	let nextPos = submarinePathCurve.getPointAt(Math.min(safeProgress + 0.005, 0.9999));
 	let lookTarget = nextPos.clone();
 
 	const dummyCompass = new THREE.Object3D();
 	dummyCompass.position.copy(submarine.position);
 	dummyCompass.lookAt(lookTarget);
 
-	submarine.quaternion.slerp(dummyCompass.quaternion, 0.05);
+	submarine.quaternion.slerp(dummyCompass.quaternion, 0.08);
 
 	let targetPitch = csvPitchData[currentIndex] || 0;
 	let targetRoll = csvRollData[currentIndex] || 0;
 
 	if (submarinePitchRoll) {
 		submarinePitchRoll.rotation.x +=
-			((targetPitch * Math.PI) / 180 - submarinePitchRoll.rotation.x) * 0.1;
+			((targetPitch * Math.PI) / 180 - submarinePitchRoll.rotation.x) * 0.08;
 		submarinePitchRoll.rotation.z +=
-			((-targetRoll * Math.PI) / 180 - submarinePitchRoll.rotation.z) * 0.1;
+			((-targetRoll * Math.PI) / 180 - submarinePitchRoll.rotation.z) * 0.08;
 	}
 }
 
